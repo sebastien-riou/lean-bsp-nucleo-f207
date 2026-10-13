@@ -1,0 +1,18 @@
+/* NUCLEO-F207ZG memory map (STM32F207ZG), from the STM32CubeMX-generated STM32F207XX_FLASH.ld.
+ * The one board-specific fragment: see default.ld for how the fragments fit together. An
+ * application's own linker script may override the sizes below by assigning them again after
+ * INCLUDE memory.ld. */
+
+ENTRY(Reset_Handler)
+
+MEMORY
+{
+  RAM   (xrw) : ORIGIN = 0x20000000, LENGTH = 128K
+  FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 1024K
+}
+
+/* Highest address of the user mode stack */
+_estack = ORIGIN(RAM) + LENGTH(RAM);
+
+_Min_Heap_Size = 0x2000;   /* required amount of heap */
+_Min_Stack_Size = 0x2000;  /* required amount of stack (CubeMX's 1 KiB is tight for printf) */
