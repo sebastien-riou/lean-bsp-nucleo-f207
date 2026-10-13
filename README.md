@@ -35,6 +35,37 @@ lbsp build-load-run --bsp nucleo-f207 --until 'hello-world done' --timeout 60
 | `app_on_exit` | default does nothing: `main()` then parks the CPU |
 | Flash/NVM | not yet |
 
+## Debugging in STM32CubeIDE
+
+STM32CubeIDE debugs the firmware lean-bsp builds as it is: it imports the ELF and finds every source
+through its debug information (absolute paths, built `-Og -g`), the application's, this BSP's and the
+HAL's alike. The IDE debugs; lean-bsp keeps building. Written for STM32CubeIDE 2.0.0.
+
+1. Build, from the application: `lbsp build --bsp nucleo-f207`. The firmware is
+   `build/nucleo-f207/cortex-m3/<application name>.elf`.
+2. In STM32CubeIDE: *File > Import > C/C++ > STM32 Cortex-M Executable*. Executable: that ELF; MCU:
+   STM32F207ZGTx. *Finish* creates a project for it and opens its debug configuration.
+3. Keep the ST-LINK GDB server probe and press *Debug*: the ELF is flashed and the core stops at
+   `main()` in `Core/Src/main.c`. Step into `bsp_init()` or `app_main()`, or set breakpoints in any
+   source.
+4. After rebuilding with `lbsp build`, debug the same configuration again: it loads the new ELF from
+   the same path.
+
+The imported project holds only the ELF. To browse the sources and set breakpoints before execution
+reaches them:
+
+- Link the source trees into the project: right-click it, *New > Folder > Advanced > Link to alternate
+  location*, once for the application and once for this BSP. They then show in the Project Explorer,
+  and *Navigate > Open Resource* (Ctrl+Shift+R) finds any of their files by name. The indexer knows
+  none of their include paths, so it may flag symbols as unresolved; this does not affect debugging.
+- Or open a single file with *File > Open File...*: breakpoints set in it work as well.
+- Or break on a function by name, with no file open: *Add Function Breakpoint (C/C++)* in the
+  *Breakpoints* view's menu, e.g. `bsp_delay_ms`.
+
+UART 0 is the ST-LINK virtual COM port, at 115200 baud. When lean-hwbridge holds that port, read it with
+`hwbridge serial cat nucleo-f207`. lean-hwbridge uses the probe only while it flashes or resets, so
+leave `lbsp load` and `lbsp run` alone during a debug session.
+
 ## Layout
 
 The board support is an STM32CubeMX project (`nucleo-f207.ioc`), taken from
@@ -53,4 +84,5 @@ still configures TIM5 as cm-trace did; nothing starts it.
 - `bsp.toml`, `bsp_cli.py`: what lean-bsp reads and runs. `bsp_cli.py` is this board's data on top of lean-bsp's
   board helpers (`leanbsp.backends`), which lean-bsp runs it with.
 
-To open it in STM32CubeIDE, regenerate an IDE project from `nucleo-f207.ioc` with STM32CubeMX.
+To change the board support itself in STM32CubeMX, open `nucleo-f207.ioc`; lean-bsp code survives
+regeneration.
