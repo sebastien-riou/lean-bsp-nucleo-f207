@@ -30,6 +30,7 @@ lbsp build-load-run --bsp nucleo-f207 --until 'hello-world done' --timeout 60
 | Cache clear | the flash accelerator's instruction and data caches reset, prefetch buffer toggled |
 | Heap usage | growth of the heap end since the last reset, tracked in `_sbrk` (`Core/Src/sysmem.c`) |
 | Reset | `NVIC_SystemReset()` |
+| Cycle timer (contract 1.1) | TIM5, one tick per CPU cycle at this clock configuration (APB1 undivided). Its interrupt enters the application's handler straight from a RAM copy of the vector table; SysTick is held off while it runs. PA0 (TIM5 channel 1) is high while it runs, a trigger for an oscilloscope. cm-trace traces with it. |
 | `app_tick` | from `SysTick_Handler`, every millisecond |
 | `app_on_fault` | from the HardFault, MemManage, BusFault and UsageFault handlers (`pc` is 0) |
 | `app_on_exit` | default does nothing: `main()` then parks the CPU |

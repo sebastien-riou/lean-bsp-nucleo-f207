@@ -113,8 +113,8 @@ void bsp_delay_ms(uint32_t ms) {
 
 void bsp_reset(void) { NVIC_SystemReset(); }
 
-/* The flash accelerator's instruction and data caches and its prefetch buffer, as
- * cm-trace-stm32f207 clears them (cmtrace_clear_caches): the caches only reset while disabled. */
+/* The flash accelerator's instruction and data caches and its prefetch buffer: the caches only
+ * reset while disabled. */
 void bsp_clear_caches(void) {
     __HAL_FLASH_PREFETCH_BUFFER_DISABLE();
     __HAL_FLASH_INSTRUCTION_CACHE_DISABLE();
@@ -124,4 +124,66 @@ void bsp_clear_caches(void) {
     __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
     __HAL_FLASH_INSTRUCTION_CACHE_ENABLE();
     __HAL_FLASH_DATA_CACHE_ENABLE();
+}
+
+/* ---- cycle timer: TIM5, one tick per CPU cycle ----
+ * TIM5 counts PCLK1 undivided, which is HCLK with this board's clock configuration (APB1 prescaler 1):
+ * one tick per CPU cycle. The handler goes straight into a RAM copy of the vector table, so the
+ * interrupt enters it with the exception-entry state. TIM5's channel 1 output, PA0, is high while
+ * the timer runs: a trigger for an oscilloscope. */
+
+#define N_VECTORS (16 + 81)  /* the core's exceptions, then this part's interrupts */
+static bsp_cycle_timer_handler_t ram_vectors[N_VECTORS] __attribute__((aligned(512)));  /* VTOR: 512 >= 4 * N_VECTORS */
+static bool tick_held;
+static bool tick_was_on;
+
+/* The tick (SysTick, at TIM5's priority) must not add cycles to what is being timed. */
+static void hold_tick(void) {
+    if (tick_held) return;
+    tick_was_on = SysTick->CTRL & SysTick_CTRL_TICKINT_Msk;
+    SysTick->CTRL &= ~SysTick_CTRL_TICKINT_Msk;
+    SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk;  /* a tick already pending would fire inside the window */
+    tick_held = true;
+}
+
+static void release_tick(void) {
+    if (!tick_held) return;
+    if (tick_was_on) SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
+    tick_held = false;
+}
+
+void bsp_cycle_timer_init(bsp_cycle_timer_handler_t handler) {
+    const bsp_cycle_timer_handler_t *flash_vectors = (const bsp_cycle_timer_handler_t *)SCB->VTOR;
+    for (unsigned i = 0; i < N_VECTORS; i++) ram_vectors[i] = flash_vectors[i];
+    ram_vectors[16 + TIM5_IRQn] = handler;
+    __DSB();
+    SCB->VTOR = (uint32_t)ram_vectors;
+    __DSB();
+    __ISB();
+    DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM5_STOP;  /* halts with the core under a debugger */
+    TIM5->CCER |= TIM_CCER_CC1E;                     /* PA0 */
+}
+
+void bsp_cycle_timer_start(uint32_t cycles) {
+    hold_tick();
+    TIM5->ARR = cycles;
+    TIM5->CNT = 0;
+    TIM5->SR = ~TIM_SR_UIF;
+    TIM5->DIER |= TIM_DIER_UIE;
+    TIM5->CR1 |= TIM_CR1_OPM;  /* one pulse: stops at the update */
+    TIM5->CCR1 = cycles;
+    TIM5->CR1 |= TIM_CR1_CEN;
+}
+
+void bsp_cycle_timer_stop(void) {
+    TIM5->CR1 &= ~TIM_CR1_CEN;
+    release_tick();
+}
+
+uint32_t bsp_cycle_timer_read(void) { return TIM5->CNT; }
+
+void bsp_cycle_timer_ack(void) {
+    bsp_cycle_timer_stop();
+    TIM5->SR = ~TIM_SR_UIF;
+    TIM5->DIER &= ~TIM_DIER_UIE;
 }

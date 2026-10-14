@@ -1,6 +1,6 @@
 [bsp]
 name = "nucleo-f207"
-lean_bsp_contract_version = "1.0"
+lean_bsp_contract_version = "1.1"
 version = "0.1.0"
 description = "ST NUCLEO-F207ZG board (STM32F207ZG, Cortex-M3)"
 maintainer = "sebastien.riou@pqshield.com"
@@ -22,6 +22,7 @@ cpu_cycle_counter = true             # DWT CYCCNT
 cpu_frequency = true
 cache_clear = true                   # the flash accelerator's I/D caches and prefetch buffer
 heap_usage = true
+cycle_timer = true                   # TIM5, one tick per CPU cycle (PA0 high while it runs)
 flash_read = false
 flash_erase = false
 flash_write = false
