@@ -1,6 +1,6 @@
 [bsp]
 name = "nucleo-f207"
-lean_bsp_contract_version = "1.1"
+lean_bsp_contract_version = "1.5"
 version = "0.1.0"
 description = "ST NUCLEO-F207ZG board (STM32F207ZG, Cortex-M3)"
 maintainer = "sebastien.riou@pqshield.com"
@@ -9,6 +9,13 @@ entry_point = "bsp_cli.py"
 [bsp.hardware]
 flash_bytes = 0x100000
 ram_bytes = 0x20000
+
+[bsp.mcu]                            # contract 1.5: what the application runs on
+vendor = "ST"
+part = "STM32F207ZGT6"              # the ordering code, from the STM32CubeMX project (nucleo-f207.ioc)
+families = ["STM32", "STM32F2", "STM32F207"]
+checked = false                      # declared only
+reserved = ["RCC", "FLASH", "SysTick", "DWT", "TIM5", "USART3", "PA0", "PB0", "PB7", "PB14", "PC13"]
 
 [bsp.build]
 backend = "custom"                   # bsp_cli.py drives the compiler; CROSS_COMPILE selects it
@@ -21,7 +28,7 @@ button = true                        # 0 is the blue user button
 cpu_cycle_counter = true             # DWT CYCCNT
 cpu_frequency = true
 cache_clear = true                   # the flash accelerator's I/D caches and prefetch buffer
-heap_usage = true
+heap_usage = true                    # src/bsp_heap.c, lean-bsp's heap counter
 cycle_timer = true                   # TIM5, one tick per CPU cycle (PA0 high while it runs)
 flash_read = false
 flash_erase = false

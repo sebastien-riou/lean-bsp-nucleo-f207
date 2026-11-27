@@ -28,7 +28,7 @@ lbsp build-load-run --bsp nucleo-f207 --until 'hello-world done' --timeout 60
 | Cycle counter, CPU frequency | DWT `CYCCNT`, at `SystemCoreClock` |
 | Delay | busy loop on the cycle counter: works with interrupts masked |
 | Cache clear | the flash accelerator's instruction and data caches reset, prefetch buffer toggled |
-| Heap usage | growth of the heap end since the last reset, tracked in `_sbrk` (`Core/Src/sysmem.c`) |
+| Heap usage | lean-bsp's heap counter (contract 1.4), `src/bsp_heap.c`: the bytes requested from `malloc`, `calloc` and `realloc` and not freed yet, at most since the last reset. The heap itself is newlib's, grown by `_sbrk` (`Core/Src/sysmem.c`) up to the stack's reserve |
 | Reset | `NVIC_SystemReset()` |
 | Cycle timer (contract 1.1) | TIM5, one tick per CPU cycle at this clock configuration (APB1 undivided). Its interrupt enters the application's handler straight from a RAM copy of the vector table; SysTick is held off while it runs. PA0 (TIM5 channel 1) is high while it runs, a trigger for an oscilloscope. cm-trace traces with it. |
 | `app_tick` | from `SysTick_Handler`, every millisecond |

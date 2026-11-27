@@ -41,7 +41,7 @@ DEFINES = ['USE_HAL_DRIVER', 'STM32F207xx']
 
 def build(app: dict, target, bdir: Path) -> dict:
     return gcc.build(app, target, bdir, root=ROOT, sources=SOURCES, include_dirs=INCLUDE_DIRS, defines=DEFINES,
-                     linker_script=ROOT / 'linker' / 'default.ld', link_flags=[f'-L{ROOT / "linker"}'])
+                     linker_script=ROOT / 'linker' / 'default.ld', link_flags=[f'-L{ROOT / "linker"}', *gcc.HEAP_WRAP_FLAGS])
 
 
 BOARD = board.Board(
